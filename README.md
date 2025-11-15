@@ -1,111 +1,92 @@
-🧠 Semantic Product Recommendation Using Db2 Vector AI + OpenAI Embeddings
+# Semantic Product Recommendation using Db2 Vector AI and OpenAI Embeddings
 
-A complete end-to-end AI-powered semantic search system using:
+This project demonstrates an end-to-end semantic search and product recommendation workflow using Db2 Vector AI and OpenAI embeddings. It covers dataset generation, embedding creation, vector storage, semantic similarity search, and image-based visualization in Jupyter notebooks.
 
-Db2 12.1.3 Vector AI
+The pipeline includes:
 
-OpenAI text-embedding-3-large
+- Embedding generation using OpenAI (text-embedding-3-large)
+- Vector storage inside Db2 using VECTOR(1024, FLOAT32)
+- Semantic similarity search using VECTOR_DISTANCE
+- Visualization (T-SNE plots, product image preview)
+- A full notebook-driven workflow
 
-Python + SQLAlchemy + ipython-sql
+---
 
-Synthetic dataset generation
+## Architecture
 
-T-SNE visualization
-
-Image-based shoe similarity search
-
-This repository demonstrates how to build vector search, embedding pipelines, and AI-driven product recommendations using structured + unstructured data.
-
-🖼️ Architecture Diagram
+```mermaid
 flowchart LR
-    A[🧑‍💻 Jupyter Notebook<br>Python + OpenAI] --> B[🔢 Generate Embeddings<br>OpenAI text-embedding-3-large]
-    B --> C[(🗄️ Db2 12.1.3)]
-    
-    subgraph Db2 Vector AI
-        C --> C1[📥 Load Product Data<br>CSV / SQL Import]
-        C1 --> C2[🧬 EMBEDDING VECTOR(1024)<br>Stored in Db2]
-        C2 --> C3[🔍 VECTOR_DISTANCE<br>Similarity Search]
+    A[Jupyter Notebook] --> B[OpenAI Embeddings]
+    B --> C[Db2 12.1.3 Vector AI]
+
+    subgraph Db2_Vector_AI
+        C --> C1[Load Product Data]
+        C1 --> C2[Embedding Vector Column]
+        C2 --> C3[Vector Similarity Search]
     end
-    
-    C3 --> D[🔁 Ranked Similar Shoes]
-    D --> E[🖼️ Visual Display<br>(shoe images, T-SNE)]
 
-📦 Repository Structure
-├── shoes-data-generation.ipynb     # Create dataset
-├── shoes-data-partitioning.ipynb   # Store-wise partitioning
-├── shoes-search.ipynb              # Semantic search + visualization
-├── shoes.csv                       # Base product data
-├── shoes-vectors.csv               # Products + embeddings (prebuilt)
-├── images/                         # Shoe photos
-├── utils.py                        # Shared helper functions
-├── requirements.txt                # Python dependencies
-├── .env-sample                     # Template for env variables
-└── README.md                       # This file
+    C3 --> D[Ranked Similar Shoes]
+    D --> E[Image Display + T-SNE Visualization]
+```
 
-🚀 Features
-✔ OpenAI-based Embedding Generation
+---
 
-Uses text-embedding-3-large to convert product attributes into high-dimensional semantic vectors.
+## Repository Structure
 
-✔ Db2 VECTOR Column
+```
+shoes-data-generation.ipynb     # Synthetic dataset creation
+shoes-data-partitioning.ipynb   # Store-wise data partitioning
+shoes-search.ipynb              # Semantic search + visualization
+shoes.csv                       # Base dataset
+shoes-vectors.csv               # Dataset with embeddings
+images/                         # Product images
+utils.py                        # Helper functions
+requirements.txt                # Dependencies
+.env-sample                     # Environment variable template
+README.md                       # Documentation
+```
 
-Stores embeddings in native optimized format:
+---
 
-EMBEDDING VECTOR(1024, FLOAT32)
+## Setup Instructions
 
-✔ Semantic Search with VECTOR_DISTANCE
+### 1. Create and activate a virtual environment
 
-Retrieve similar products using:
-
-EUCLIDEAN
-
-DOT_PRODUCT
-
-COSINE (via normalization)
-
-✔ Image-based Recommendation
-
-Displays similarity results with product photos.
-
-✔ T-SNE Visualization
-
-Plots product embeddings in 2-D space.
-
-✔ Fully Parameterized SQL + .env Support
-
-Uses secure environment variables for:
-
-Db2 credentials
-
-OpenAI API keys
-
-⚙️ Setup Instructions
-1️⃣ Create Virtual Environment
+```bash
 uv venv --python=python3.12
 source .venv/bin/activate
+```
 
-2️⃣ Install Dependencies
+### 2. Install dependencies
+
+```bash
 uv pip install -r requirements.txt
+```
 
-🔐 Configure .env
+---
 
-Rename .env-sample → .env and update:
+## Environment Configuration
 
-# OpenAI
-OPENAI_API_KEY=your_key
-OPENAI_BASE_URL="https://api.openai.com/v1"
-OPENAI_EMBED_MODEL="text-embedding-3-large"
+Create a `.env` file using the template:
 
-# Db2 credentials
-database=test1
+```
+OPENAI_API_KEY=your_key_here
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_EMBED_MODEL=text-embedding-3-large
+
+database=
 hostname=localhost
-port=50000
+port=
 protocol=TCPIP
-uid=db2inst1
-pwd=password
+uid=
+pwd=
+```
 
-🗄️ Db2 Table Structure
-Product Data
+---
+
+## Db2 Table Schema
+
+```sql
 CREATE TABLE SQ_SHOES (
   SKU VARCHAR(8),
   PRODUCT_NAME VARCHAR(23),
@@ -122,99 +103,111 @@ CREATE TABLE SQ_SHOES (
   STORE_ID BIGINT,
   CITY VARCHAR(7)
 );
+```
 
-Add Embedding Column
+Add vector column:
+
+```sql
 ALTER TABLE SQ_SHOES
 ADD COLUMN EMBEDDING VECTOR(1024, FLOAT32);
+```
 
-🤖 Generating Embeddings with OpenAI
+---
+
+## Generating Embeddings (OpenAI)
+
+```python
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
-
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_BASE_URL")
-)
-
-embed_model = os.getenv("OPENAI_EMBED_MODEL")
+client = OpenAI()
 
 response = client.embeddings.create(
-    model=embed_model,
-    input=shoe_text
+    model=os.getenv("OPENAI_EMBED_MODEL"),
+    input=product_text
 )
 
 embedding = response.data[0].embedding
+```
 
-🔌 Connecting to Db2 from Jupyter
-db2creds = dotenv_values('.env')
+---
+
+## Connect to Db2 (via ipython-sql)
+
+```python
+from dotenv import dotenv_values
+db2creds = dotenv_values(".env")
+
 %sql CONNECT CREDENTIALS db2creds
+```
 
-📥 Loading Data into Db2
-CSV → Db2 via IMPORT
+---
+
+## Load Data into Db2
+
+```sql
 IMPORT FROM 'shoes-vectors.csv' OF DEL
   MODIFIED BY skipcount 1
-  INSERT INTO SQ_SHOES
+  INSERT INTO SQ_SHOES;
+```
 
-🧠 Semantic Similarity Search
-SELECT  
+---
+
+## Semantic Similarity Search
+
+```sql
+SELECT
   s2.SKU,
   s2.PRODUCT_NAME,
-  VECTOR_DISTANCE(s1.EMBEDDING, s2.EMBEDDING, EUCLIDEAN) AS dist
+  VECTOR_DISTANCE(s1.EMBEDDING, s2.EMBEDDING, EUCLIDEAN) AS DISTANCE
 FROM SQ_SHOES s1
-JOIN SQ_SHOES s2 ON s1.SKU <> s2.SKU
-WHERE s1.SKU = :my_sku
-ORDER BY dist
+JOIN SQ_SHOES s2
+  ON s1.SKU <> s2.SKU
+WHERE s1.SKU = :my_choice_sku
+ORDER BY DISTANCE
 FETCH FIRST 3 ROWS ONLY;
+```
 
-🎨 Visualization Example
-T-SNE Plot
+---
+
+## Visualization
+
+### T-SNE Embedding Plot
+
+```python
 plot_similarity_tsne(df_vectors, my_choice_sku)
+```
 
-Display Images
-display_sku_images(["SKU001", "SKU145", "SKU322"])
+### Product Images Preview
 
-🖼️ Workflow Diagram
+```python
+display_sku_images(["SKU001", "SKU233", "SKU145"])
+```
+
+---
+
+## End-to-End Data Flow (Sequence Diagram)
+
+```mermaid
 sequenceDiagram
-    participant NB as Jupyter Notebook
-    participant OA as OpenAI API
-    participant DB as Db2 12.1.3
-    participant IMG as Image Renderer
+    participant NB as Notebook
+    participant OA as OpenAI
+    participant DB as Db2
+    participant VIS as Visualization
 
-    NB->>OA: Generate text embeddings\n(text-embedding-3-large)
-    OA-->>NB: Return vector (1024-dim)
-    NB->>DB: INSERT vector into VECTOR column
-    NB->>DB: Run semantic search\nVECTOR_DISTANCE()
-    DB-->>NB: Similar SKUs ranked by similarity
-    NB->>IMG: Display images + charts
+    NB->>OA: Generate embedding
+    OA-->>NB: Return vector
+    NB->>DB: Insert VECTOR(1024,FLOAT32)
+    NB->>DB: Run VECTOR_DISTANCE search
+    DB-->>NB: Return similar products
+    NB->>VIS: Display T-SNE + product images
+```
 
-🎯 Final Output Example
+---
 
-✔ Input shoe
-✔ Top-3 most similar shoes
-✔ Distance scores
-✔ Images
-✔ T-SNE cluster plot
+## Contributing
 
-This provides a complete end-to-end semantic search experience.
+Contributions and suggestions are welcome!
 
-🤝 Contribute
-
-PRs and suggestions are welcome.
-This repo is an excellent foundation for:
-
-Retail AI use cases
-
-Vector databases
-
-Recommendation engines
-
-AI search demonstrations
-
-Db2 + OpenAI integration patterns
-
-⭐ If you found this useful…
-
-Leave a star ⭐ on the repository — it helps others discover this solution!
